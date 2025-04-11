@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: java-backend
+  profiles:
+    active: dev
+
+server:
+  servlet:
+    context-path: /api
+  port: 8080
+
+file:
+  upload-dir: uploads/
+
+supabase:
+  url: <YOUR-PROJECT-ID>
+  bucket: <YOUR-BUCKET-NAME>
+  apikey: <YOUR-ANON-API-KEY>
