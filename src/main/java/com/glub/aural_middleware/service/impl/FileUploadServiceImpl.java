@@ -1,5 +1,6 @@
 package com.glub.aural_middleware.service.impl;
 
+import com.glub.aural_middleware.service.AudioCompressor;
 import com.glub.aural_middleware.service.FileUploadService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -9,6 +10,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.util.UUID;
 
 @Service
@@ -24,22 +27,25 @@ public class FileUploadServiceImpl implements FileUploadService {
     private String apiKey;
 
     private final WebClient webClient;
+    private final AudioCompressor audioCompressor;
 
-    public FileUploadServiceImpl() {
+    public FileUploadServiceImpl(AudioCompressor audioCompressor) {
         this.webClient = WebClient.builder().build();
+        this.audioCompressor = audioCompressor;
     }
 
     @Override
     public String uploadFile(MultipartFile file) {
         try {
-            // Step 1: Generate safe, random filename
-            String originalName = file.getOriginalFilename();
+            // Step 1: Compress the audio to .opus using the AudioCompressor service
+            File compressedFile = audioCompressor.compressToOpus(file);
+            byte[] fileBytes = Files.readAllBytes(compressedFile.toPath());
+
+            // Step 2: Generate a safe, random filename for the compressed file
+            String originalName = compressedFile.getName(); // This will be the name of the compressed file
             String extension = StringUtils.getFilenameExtension(originalName);
             String randomId = UUID.randomUUID().toString();
-            String fileName = randomId + (extension != null ? "." + extension : "");
-
-            // Step 2: Read bytes
-            byte[] fileBytes = file.getBytes();
+            String fileName = randomId + (extension != null ? "." + extension : ".opus"); // Ensure .opus extension
 
             // Step 3: Upload to Supabase
             String uploadUrl = String.format("%s/storage/v1/object/%s/%s", supabaseUrl, bucket, fileName);
@@ -57,6 +63,9 @@ public class FileUploadServiceImpl implements FileUploadService {
 
             // Step 4: Success check
             if (response != null && response.getStatusCode().is2xxSuccessful()) {
+                // Clean up the temporary compressed file after upload
+                compressedFile.delete();
+
                 return supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + fileName;
             } else {
                 throw new RuntimeException("File upload failed: " +
@@ -68,5 +77,6 @@ public class FileUploadServiceImpl implements FileUploadService {
             throw new RuntimeException("Error during file upload: " + e.getMessage(), e);
         }
     }
+
 
 }
