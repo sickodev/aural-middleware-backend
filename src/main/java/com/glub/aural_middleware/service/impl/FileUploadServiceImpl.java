@@ -63,9 +63,6 @@ public class FileUploadServiceImpl implements FileUploadService {
 
             // Step 4: Success check
             if (response != null && response.getStatusCode().is2xxSuccessful()) {
-                // Clean up the temporary compressed file after upload
-                compressedFile.delete();
-
                 return supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + fileName;
             } else {
                 throw new RuntimeException("File upload failed: " +
