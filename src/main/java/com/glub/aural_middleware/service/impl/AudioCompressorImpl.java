@@ -31,8 +31,8 @@ public class AudioCompressorImpl  implements AudioCompressor {
         };
 
         ProcessBuilder pb = new ProcessBuilder(command);
-        pb.inheritIO(); // For debugging; remove in production
-        Process process = pb.start();
+        pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+        pb.redirectError(ProcessBuilder.Redirect.DISCARD);
         int exitCode = process.waitFor();
 
         if (exitCode != 0) {
